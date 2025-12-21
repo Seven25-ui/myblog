@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - MyBlog</title>
+<style>
+:root{
+    --bg1:#0f4c81;
+    --bg2:#0a2e5c;
+    --card:rgba(15,43,78,0.95);
+    --border:#12406d;
+    --text:#e0f2ff;
+    --muted:#a3c5e8;
+    --accent:#38bdf8;
+    --danger:#f87171;
+}
+
+*{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;scroll-behavior:smooth;}
+body{margin:0;min-height:100vh;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text);display:flex;justify-content:center;align-items:center;flex-direction:column;}
+
+/* FORM CARD */
+form{
+    background: var(--card);
+    padding:24px;
+    border-radius:18px;
+    width:100%;
+    max-width:360px;
+    box-shadow:0 20px 40px rgba(0,0,0,.6);
+}
+
+h2{text-align:center;margin-bottom:16px;}
+
+input{
+    width:100%;
+    padding:12px;
+    margin-top:8px;
+    margin-bottom:14px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#0a2e5c;
+    color:#fff;
+    font-size:15px;
+    outline:none;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(135deg,#38bdf8,#0a74b1);
+    color:#fff;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{opacity:.9;}
+
+/* ERROR */
+.error{
+    color:var(--danger);
+    font-size:0.9em;
+    margin-bottom:10px;
+}
+
+/* SIGNUP LINK */
+a{
+    display:block;
+    text-align:center;
+    margin-top:10px;
+    font-size:0.85em;
+    color:var(--accent);
+    text-decoration:none;
+    transition:0.3s;
+}
+
+a:hover{opacity:.8;}
+</style>
+</head>
+<body>
+
+<form method="POST">
+    <h2>Login</h2>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <input type="text" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <button type="submit">Login</button>
+    <a href="{{ url_for('signup') }}">Don't have an account? Sign Up</a>
+</form>
+
+</body>
+</html>

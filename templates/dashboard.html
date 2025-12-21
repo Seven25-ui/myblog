@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - MyBlog</title>
+<style>
+:root{
+    --bg1:#0f4c81;
+    --bg2:#0a2e5c;
+    --card:rgba(15,43,78,0.95);
+    --border:#12406d;
+    --text:#e0f2ff;
+    --muted:#a3c5e8;
+    --accent:#38bdf8;
+    --danger:#f87171;
+}
+
+/* RESET */
+*{
+    box-sizing:border-box;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    scroll-behavior: smooth;
+}
+
+/* BODY */
+body{
+    margin:0;
+    min-height:100vh;
+    background: linear-gradient(180deg,var(--bg1),var(--bg2));
+    color: var(--text);
+    overflow-x:hidden;
+    position:relative;
+}
+
+/* OCEAN WAVES ANIMATION */
+body::before{
+    content:'';
+    position:fixed;
+    width:200%;
+    height:200%;
+    top:-50%;
+    left:-50%;
+    background: radial-gradient(circle at 50% 50%, rgba(56,189,248,0.15) 0%, transparent 70%);
+    animation: wave 25s linear infinite;
+    z-index:0;
+}
+
+@keyframes wave{
+    0%{transform:translateX(0) translateY(0);}
+    50%{transform:translateX(50px) translateY(30px);}
+    100%{transform:translateX(0) translateY(0);}
+}
+
+/* HEADER */
+.header{
+    position:sticky;
+    top:0;
+    z-index:999;
+    background:rgba(10,20,40,0.9);
+    backdrop-filter: blur(10px);
+    border-bottom:1px solid var(--border);
+    padding:14px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+}
+
+.profile{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-weight:600;
+    z-index:1;
+}
+
+.profile img{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid var(--accent);
+}
+
+/* NAV */
+.nav{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    z-index:1;
+}
+
+.nav a{
+    color: var(--accent);
+    text-decoration:none;
+    font-size:13px;
+    padding:6px 12px;
+    border-radius:8px;
+    transition:0.3s;
+}
+
+.nav a:hover{
+    background: rgba(56,189,248,0.2);
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+
+#darkBtn{
+    padding:6px 14px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:#0a2e5c;
+    color:#fff;
+    font-size:12px;
+    cursor:pointer;
+    box-shadow:0 0 10px rgba(56,189,248,0.5);
+    transition:0.3s;
+}
+
+#darkBtn:hover{
+    box-shadow:0 0 20px rgba(56,189,248,0.8);
+}
+
+/* POSTS */
+.posts{
+    max-width:760px;
+    margin:24px auto;
+    padding:0 16px;
+    position:relative;
+    z-index:1;
+}
+
+/* POST CARD */
+.post{
+    background: var(--card);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:18px 20px;
+    margin-bottom:20px;
+    transition: transform .3s, box-shadow .3s, background .3s;
+    cursor:pointer;
+}
+
+.post:hover{
+    transform:translateY(-6px) scale(1.02);
+    box-shadow:0 22px 48px rgba(0,0,0,.55);
+    background:linear-gradient(135deg, rgba(15,43,78,0.95), rgba(56,189,248,0.12));
+}
+
+/* POST TEXT */
+.post h3{
+    margin:0 0 8px;
+    font-size:19px;
+}
+
+.post p{
+    margin:8px 0 12px;
+    line-height:1.6;
+}
+
+.post small{
+    font-size:12px;
+    color:var(--muted);
+}
+
+/* ACTIONS */
+.actions{
+    display:flex;
+    gap:14px;
+    margin-top:12px;
+}
+
+.actions a{
+    font-size:13px;
+    color:var(--accent);
+    text-decoration:none;
+    transition:0.3s;
+}
+
+.actions a:hover{
+    opacity:.9;
+}
+
+.actions button{
+    background:none;
+    border:none;
+    color:var(--danger);
+    font-size:13px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.actions button:hover{
+    opacity:.8;
+}
+
+/* REACTIONS */
+.reactions{
+    display:flex;
+    gap:18px;
+    margin-top:14px;
+    font-size:14px;
+}
+
+.reactions a{
+    color:var(--text);
+    text-decoration:none;
+    opacity:.85;
+}
+
+.reactions a:hover{
+    opacity:1;
+}
+
+/* COMMENTS */
+.comment{
+    margin-top:12px;
+    padding:12px 14px;
+    background:#0a2e5c;
+    border-radius:12px;
+    font-size:14px;
+}
+
+.comment small{
+    color:var(--muted);
+}
+
+/* COMMENT FORM */
+.comment-form{
+    display:flex;
+    gap:12px;
+    margin-top:14px;
+}
+
+.comment-form input{
+    flex:1;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#0a2e5c;
+    color:#fff;
+}
+
+.comment-form button{
+    padding:12px 16px;
+    border-radius:12px;
+    border:none;
+    background:linear-gradient(135deg,#38bdf8,#0a74b1);
+    color:#fff;
+    cursor:pointer;
+}
+
+/* DARK MODE */
+body.dark{
+    --bg1:#0a2e5c;
+    --bg2:#001f3f;
+    --card:rgba(2,12,30,0.95);
+}
+
+/* MOBILE FIX */
+@media (max-width:480px){
+    .header{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:10px;
+    }
+
+    .nav{
+        width:100%;
+        justify-content:space-between;
+    }
+}
+</style>
+</head>
+
+<body>
+<!-- HEADER -->
+<div class="header">
+    <div class="profile">
+        <img src="{{ session['profile_pic'] }}">
+        <span>{{ session['username'] }}</span>
+    </div>
+    <div class="nav">
+        <a href="{{ url_for('add_post') }}">Add Post</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+        <button id="darkBtn">Dark</button>
+    </div>
+</div>
+
+<!-- POSTS -->
+<div class="posts">
+{% for post in posts %}
+<div class="post">
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content }}</p>
+    <small>{{ post.timestamp.strftime('%b %d, %Y %H:%M') }}</small>
+
+    {% if post.user_id == session['user_id'] %}
+    <div class="actions">
+        <a href="{{ url_for('edit_post', post_id=post.id) }}">Edit</a>
+        <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display:inline;">
+            <button type="submit">Delete</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- REACTIONS -->
+    <div class="reactions">
+        <a href="{{ url_for('react', post_id=post.id, emoji='😄') }}">😄 {{ post.reactions|selectattr('emoji','equalto','😄')|list|length }}</a>
+        <a href="{{ url_for('react', post_id=post.id, emoji='😢') }}">😢 {{ post.reactions|selectattr('emoji','equalto','😢')|list|length }}</a>
+        <a href="{{ url_for('react', post_id=post.id, emoji='😮') }}">😮 {{ post.reactions|selectattr('emoji','equalto','😮')|list|length }}</a>
+        <a href="{{ url_for('react', post_id=post.id, emoji='👍') }}">👍 {{ post.reactions|selectattr('emoji','equalto','👍')|list|length }}</a>
+    </div>
+
+    <!-- COMMENTS -->
+    {% for c in post.comments %}
+    <div class="comment">
+        <strong>{{ c.user.username }}</strong>: {{ c.content }}
+        <small>{{ c.timestamp.strftime('%H:%M') }}</small>
+    </div>
+    {% endfor %}
+
+    <form class="comment-form" action="{{ url_for('add_comment', post_id=post.id) }}" method="POST">
+        <input name="comment" required placeholder="Comment...">
+        <button>Post</button>
+    </form>
+</div>
+{% endfor %}
+</div>
+
+<script>
+// DARK MODE TOGGLE
+document.getElementById("darkBtn").onclick = () => {
+    document.body.classList.toggle("dark");
+}
+
+// 3D tilt effect sa posts
+const posts = document.querySelectorAll(".post");
+posts.forEach(post=>{
+    post.addEventListener("mousemove",(e)=>{
+        const rect = post.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const cx = rect.width/2;
+        const cy = rect.height/2;
+        const dx = (x-cx)/20;
+        const dy = (y-cy)/20;
+        post.style.transform = `rotateY(${dx}deg) rotateX(${-dy}deg) translateY(-6px) scale(1.02)`;
+    });
+    post.addEventListener("mouseleave",()=>{
+        post.style.transform = "translateY(0) scale(1)";
+    });
+});
+</script>
+</body>
+</html>

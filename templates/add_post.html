@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Post - MyBlog</title>
+<style>
+:root{
+    --bg1:#0f4c81;
+    --bg2:#0a2e5c;
+    --card:rgba(15,43,78,0.95);
+    --border:#12406d;
+    --text:#e0f2ff;
+    --muted:#a3c5e8;
+    --accent:#38bdf8;
+    --danger:#f87171;
+}
+
+*{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;scroll-behavior:smooth;}
+body{margin:0;min-height:100vh;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text);display:flex;justify-content:center;align-items:center;flex-direction:column;}
+
+/* FORM CARD */
+form{
+    background: var(--card);
+    padding:24px;
+    border-radius:18px;
+    width:100%;
+    max-width:420px;
+    box-shadow:0 20px 40px rgba(0,0,0,.6);
+}
+
+h2{text-align:center;margin-bottom:16px;}
+
+input, textarea{
+    width:100%;
+    padding:12px;
+    margin-top:8px;
+    margin-bottom:14px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#0a2e5c;
+    color:#fff;
+    font-size:15px;
+    outline:none;
+}
+
+textarea{resize:vertical; min-height:120px;}
+
+button{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(135deg,#38bdf8,#0a74b1);
+    color:#fff;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{opacity:.9;}
+
+/* BACK LINK */
+.back-link{
+    display:inline-block;
+    margin:16px auto 0;
+    font-size:0.85em;
+    text-decoration:none;
+    background: rgba(56,189,248,0.2);
+    color:#fff;
+    padding:6px 12px;
+    border-radius:8px;
+    transition:0.3s;
+}
+
+.back-link:hover{background: rgba(56,189,248,0.4);}
+</style>
+</head>
+<body>
+
+<form method="POST">
+    <h2>Add Post</h2>
+    <input type="text" name="title" placeholder="Title" required>
+    <textarea name="content" placeholder="Content" rows="5" required></textarea>
+    <button type="submit">Add Post</button>
+</form>
+
+<a class="back-link" href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+
+</body>
+</html>
