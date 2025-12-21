@@ -1,12 +1,18 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+import os
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import secrets
+import pytz
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///myblog.db'
+
+# --- SQLite setup for Render ---
+basedir = os.path.abspath(os.path.dirname(__file__))
+db_path = os.path.join(basedir, "myblog.db")
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -29,10 +35,12 @@ class Post(db.Model):
     comments = db.relationship('Comment', backref='post', lazy=True, cascade="all, delete-orphan")
     reactions = db.relationship('Reaction', backref='post', lazy=True, cascade="all, delete-orphan")
 
+local_tz = pytz.timezone("Asia/Manila")
+
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(local_tz))
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
@@ -103,37 +111,52 @@ def add_post():
         post = Post(title=title, content=content, user_id=session['user_id'])
         db.session.add(post)
         db.session.commit()
+        flash("Post added successfully!")
         return redirect(url_for('dashboard'))
     return render_template('add_post.html')
 
 @app.route('/edit/<int:post_id>', methods=['GET','POST'])
 def edit_post(post_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     post = Post.query.get_or_404(post_id)
-    if post.user_id != session.get('user_id'):
+    if post.user_id != session['user_id']:
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
         post.title = request.form['title']
         post.content = request.form['content']
         db.session.commit()
+        flash("Post updated!")
         return redirect(url_for('dashboard'))
     return render_template('edit_post.html', post=post)
 
 @app.route('/delete/<int:post_id>', methods=['POST'])
 def delete_post(post_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     post = Post.query.get_or_404(post_id)
-    if post.user_id != session.get('user_id'):
+    if post.user_id != session['user_id']:
         return redirect(url_for('dashboard'))
     db.session.delete(post)
     db.session.commit()
+    flash("Post deleted!")
     return redirect(url_for('dashboard'))
 
 @app.route('/comment/<int:post_id>', methods=['POST'])
 def add_comment(post_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     post = Post.query.get_or_404(post_id)
     content = request.form['comment']
-    comment = Comment(content=content, post_id=post.id, user_id=session['user_id'])
+    comment = Comment(
+        content=content,
+        post_id=post.id,
+        user_id=session['user_id'],
+        timestamp=datetime.now(local_tz)  # Manila time
+    )
     db.session.add(comment)
     db.session.commit()
+    flash("Comment added!")
     return redirect(url_for('dashboard'))
 
 @app.route('/react/<int:post_id>/<emoji>')
@@ -147,16 +170,16 @@ def react(post_id, emoji):
     )
     db.session.add(new_reaction)
     db.session.commit()
+    flash("Reaction added!")
     return redirect(url_for('dashboard'))
 
 # --- Run App ---
 if __name__ == '__main__':
     with app.app_context():
-        # Delete old DB if needed to avoid conflicts
-        # import os; os.remove('myblog.db')
         db.create_all()
         if not User.query.first():
-            u = User(username="Johnny", password=generate_password_hash("1234"))
-            db.session.add(u)
+            default_user = User(username="Johnny", password=generate_password_hash("1234"))
+            db.session.add(default_user)
             db.session.commit()
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(debug=True, host="0.0.0.0", port=port)
