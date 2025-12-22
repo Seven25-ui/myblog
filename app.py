@@ -38,18 +38,8 @@ class Post(db.Model):
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    comments = db.relationship(
-        "Comment",
-        backref="post",
-        lazy=True,
-        cascade="all, delete-orphan"
-    )
-    reactions = db.relationship(
-        "Reaction",
-        backref="post",
-        lazy=True,
-        cascade="all, delete-orphan"
-    )
+    comments = db.relationship("Comment", backref="post", lazy=True, cascade="all, delete-orphan")
+    reactions = db.relationship("Reaction", backref="post", lazy=True, cascade="all, delete-orphan")
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -88,7 +78,6 @@ def login():
                 return redirect(url_for("dashboard"))
             else:
                 error = "Invalid username or password"
-
     return render_template("login.html", error=error)
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -103,10 +92,7 @@ def signup():
         elif User.query.filter_by(username=username).first():
             error = "Username already exists!"
         else:
-            user = User(
-                username=username,
-                password=generate_password_hash(password)
-            )
+            user = User(username=username, password=generate_password_hash(password))
             db.session.add(user)
             db.session.commit()
             session["user_id"] = user.id
@@ -134,7 +120,6 @@ def dashboard():
 def add_post():
     if "user_id" not in session:
         return redirect(url_for("login"))
-
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         content = request.form.get("content", "").strip()
@@ -146,13 +131,62 @@ def add_post():
             return redirect(url_for("dashboard"))
         else:
             flash("Title and content cannot be empty")
-
     return render_template("add_post.html")
 
-# --- Edit, Delete, Comment, React routes same as previous version ---
-# (They are already safe and functional)
+@app.route("/edit/<int:post_id>", methods=["GET", "POST"])
+def edit_post(post_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    post = Post.query.get_or_404(post_id)
+    if post.user_id != session["user_id"]:
+        flash("You cannot edit this post")
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        post.title = request.form.get("title", "").strip()
+        post.content = request.form.get("content", "").strip()
+        db.session.commit()
+        flash("Post updated!")
+        return redirect(url_for("dashboard"))
+    return render_template("edit_post.html", post=post)
 
-# --- RUN ---
+@app.route("/delete/<int:post_id>", methods=["POST"])
+def delete_post(post_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    post = Post.query.get_or_404(post_id)
+    if post.user_id != session["user_id"]:
+        flash("You cannot delete this post")
+        return redirect(url_for("dashboard"))
+    db.session.delete(post)
+    db.session.commit()
+    flash("Post deleted!")
+    return redirect(url_for("dashboard"))
+
+@app.route("/comment/<int:post_id>", methods=["POST"])
+def add_comment(post_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    comment_content = request.form.get("comment", "").strip()
+    if comment_content:
+        comment = Comment(content=comment_content, post_id=post_id, user_id=session["user_id"])
+        db.session.add(comment)
+        db.session.commit()
+        flash("Comment added!")
+    else:
+        flash("Comment cannot be empty")
+    return redirect(url_for("dashboard"))
+
+@app.route("/react/<int:post_id>/<emoji>")
+def react(post_id, emoji):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    reaction = Reaction(emoji=emoji, post_id=post_id, user_id=session["user_id"])
+    db.session.add(reaction)
+    db.session.commit()
+    flash("Reaction added!")
+    return redirect(url_for("dashboard"))
+
+# --- RUN APP ---
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
