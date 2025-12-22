@@ -3,12 +3,14 @@ import secrets
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
+import pytz
 
+# --- Flask app ---
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
 
-# --- SQLite setup (Termux + Render safe) ---
+# --- SQLite setup (Render-safe + Termux-safe) ---
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, "instance")
 os.makedirs(instance_path, exist_ok=True)
@@ -19,13 +21,11 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-# --- Philippine time helper ---
-def manila_now():
-    return datetime.now(timezone(timedelta(hours=8)))
+# --- Manila timezone ---
+MANILA_TZ = pytz.timezone("Asia/Manila")
 
-# --- MODELS ---
+# --- Models ---
 class User(db.Model):
-    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.String(200), nullable=False)
@@ -35,31 +35,28 @@ class User(db.Model):
     reactions = db.relationship("Reaction", backref="user", lazy=True)
 
 class Post(db.Model):
-    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=manila_now)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(MANILA_TZ))
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     comments = db.relationship("Comment", backref="post", lazy=True, cascade="all, delete-orphan")
     reactions = db.relationship("Reaction", backref="post", lazy=True, cascade="all, delete-orphan")
 
 class Comment(db.Model):
-    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=manila_now)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(MANILA_TZ))
     post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
 class Reaction(db.Model):
-    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     emoji = db.Column(db.String(10), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
-# --- ROUTES ---
+# --- Routes ---
 @app.route("/")
 def home():
     return redirect(url_for("dashboard") if "user_id" in session else url_for("login"))
@@ -70,6 +67,7 @@ def signup():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
+
         if User.query.filter_by(username=username).first():
             error = "Username already exists!"
         else:
@@ -80,6 +78,7 @@ def signup():
             session["username"] = user.username
             session["profile_pic"] = user.profile_pic
             return redirect(url_for("dashboard"))
+
     return render_template("signup.html", error=error)
 
 @app.route("/login", methods=["GET", "POST"])
@@ -89,6 +88,7 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
         user = User.query.filter_by(username=username).first()
+
         if user and check_password_hash(user.password, password):
             session["user_id"] = user.id
             session["username"] = user.username
@@ -96,6 +96,7 @@ def login():
             return redirect(url_for("dashboard"))
         else:
             error = "Invalid username or password"
+
     return render_template("login.html", error=error)
 
 @app.route("/logout")
@@ -163,14 +164,13 @@ def add_comment(post_id):
 def react(post_id, emoji):
     if "user_id" not in session:
         return redirect(url_for("login"))
-    reaction = Reaction(post_id=post_id, emoji=emoji, user_id=session["user_id"])
-    db.session.add(reaction)
+    db.session.add(Reaction(emoji=emoji, post_id=post_id, user_id=session["user_id"]))
     db.session.commit()
     return redirect(url_for("dashboard"))
 
-# --- RUN ---
+# --- Run App ---
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()  # safe, will create tables if not exist
+        db.create_all()  # auto-create tables if missing
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=True)
