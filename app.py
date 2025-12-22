@@ -1,5 +1,6 @@
 import os
 import secrets
+import logging
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,7 +11,15 @@ import pytz  # pip install pytz
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
 
-# --- DATABASE (Render + Termux safe) ---
+# --- LOGGING (for Render production) ---
+if not app.debug:
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.ERROR)
+    formatter = logging.Formatter("[%(asctime)s] %(levelname)s in %(module)s: %(message)s")
+    stream_handler.setFormatter(formatter)
+    app.logger.addHandler(stream_handler)
+
+# --- DATABASE (Render + local safe) ---
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, "instance")
 os.makedirs(instance_path, exist_ok=True)
@@ -101,7 +110,6 @@ def logout():
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    # --- Safe Pagination ---
     page = request.args.get("page", 1, type=int)
     per_page = 5
     posts = Post.query.order_by(Post.timestamp.desc()).limit(per_page).offset((page-1)*per_page).all()
@@ -164,7 +172,7 @@ def react(post_id, emoji):
     db.session.commit()
     return redirect(url_for("dashboard"))
 
-# --- RUN APP ---
+# --- RUN APP (Production-ready) ---
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
@@ -173,6 +181,10 @@ if __name__ == "__main__":
             admin_user = User(username="admin", password=generate_password_hash("admin123"))
             db.session.add(admin_user)
             db.session.commit()
-            print("Admin created: username=admin, password=admin123")
+            app.logger.info("Admin created: username=admin, password=admin123")
+
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    # Only run dev server locally
+    if os.environ.get("FLASK_ENV") == "development":
+        app.run(host="0.0.0.0", port=port, debug=True)
+    # In production (Render), Gunicorn will run the app, no print needed
