@@ -4,12 +4,13 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import pytz  # make sure this is installed: pip install pytz
+import pytz  # pip install pytz
 
+# --- APP SETUP ---
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
 
-# --- SQLite setup (Render + Termux safe) ---
+# --- DATABASE (Render + Termux safe) ---
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, "instance")
 os.makedirs(instance_path, exist_ok=True)
@@ -19,7 +20,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-# --- Timezone ---
+# --- TIMEZONE ---
 local_tz = pytz.timezone("Asia/Manila")
 
 # --- MODELS ---
@@ -33,7 +34,6 @@ class User(db.Model):
     reactions = db.relationship("Reaction", backref="user", lazy=True)
 
 class Post(db.Model):
-    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
@@ -43,7 +43,6 @@ class Post(db.Model):
     reactions = db.relationship("Reaction", backref="post", lazy=True, cascade="all, delete-orphan")
 
 class Comment(db.Model):
-    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(local_tz))
@@ -51,7 +50,6 @@ class Comment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
 class Reaction(db.Model):
-    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     emoji = db.Column(db.String(10), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=False)
@@ -103,8 +101,11 @@ def logout():
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
-    return render_template("dashboard.html", posts=posts)
+    # --- Safe Pagination ---
+    page = request.args.get("page", 1, type=int)
+    per_page = 5
+    posts = Post.query.order_by(Post.timestamp.desc()).limit(per_page).offset((page-1)*per_page).all()
+    return render_template("dashboard.html", posts=posts, page=page)
 
 @app.route("/add", methods=["GET", "POST"])
 def add_post():
@@ -167,7 +168,7 @@ def react(post_id, emoji):
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-        # Auto-create admin user if no users exist
+        # Auto-create admin if no users exist
         if not User.query.filter_by(username="admin").first():
             admin_user = User(username="admin", password=generate_password_hash("admin123"))
             db.session.add(admin_user)
