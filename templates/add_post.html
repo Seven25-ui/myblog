@@ -6,52 +6,77 @@
 <title>Add Post - MyBlog</title>
 <style>
 :root{
-    --bg1:#0f4c81;
-    --bg2:#0a2e5c;
-    --card:rgba(15,43,78,0.95);
-    --border:#12406d;
-    --text:#e0f2ff;
-    --muted:#a3c5e8;
-    --accent:#38bdf8;
-    --danger:#f87171;
+    --bg1:#f0f2f5;
+    --bg2:#ffffff;
+    --card:#ffffff;
+    --border:#dcdfe6;
+    --text:#1c1e21;
+    --muted:#606770;
+    --accent:#1877f2;
+    --danger:#f02849;
 }
 
-*{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;scroll-behavior:smooth;}
-body{margin:0;min-height:100vh;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text);display:flex;justify-content:center;align-items:center;flex-direction:column;}
+/* RESET */
+*{
+    box-sizing:border-box;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    scroll-behavior: smooth;
+    margin:0;
+    padding:0;
+}
+
+/* BODY */
+body{
+    min-height:100vh;
+    background: linear-gradient(180deg,var(--bg1),var(--bg2));
+    color: var(--text);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    padding:20px;
+}
 
 /* FORM CARD */
 form{
     background: var(--card);
     padding:24px;
-    border-radius:18px;
+    border-radius:12px;
     width:100%;
-    max-width:420px;
-    box-shadow:0 20px 40px rgba(0,0,0,.6);
+    max-width:500px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.1);
 }
 
-h2{text-align:center;margin-bottom:16px;}
+h2{
+    text-align:center;
+    margin-bottom:16px;
+    color: var(--text);
+}
 
 input, textarea{
     width:100%;
     padding:12px;
     margin-top:8px;
     margin-bottom:14px;
-    border-radius:12px;
+    border-radius:8px;
     border:1px solid var(--border);
-    background:#0a2e5c;
-    color:#fff;
+    background:#ffffff;
+    color:var(--text);
     font-size:15px;
     outline:none;
 }
 
-textarea{resize:vertical; min-height:120px;}
+textarea{
+    resize:vertical;
+    min-height:120px;
+}
 
 button{
     width:100%;
     padding:12px;
     border:none;
-    border-radius:12px;
-    background:linear-gradient(135deg,#38bdf8,#0a74b1);
+    border-radius:8px;
+    background: var(--accent);
     color:#fff;
     font-size:16px;
     font-weight:bold;
@@ -59,7 +84,9 @@ button{
     transition:0.3s;
 }
 
-button:hover{opacity:.9;}
+button:hover{
+    opacity:0.9;
+}
 
 /* BACK LINK */
 .back-link{
@@ -67,14 +94,42 @@ button:hover{opacity:.9;}
     margin:16px auto 0;
     font-size:0.85em;
     text-decoration:none;
-    background: rgba(56,189,248,0.2);
-    color:#fff;
+    background: rgba(24,119,242,0.1);
+    color: var(--accent);
     padding:6px 12px;
-    border-radius:8px;
+    border-radius:6px;
     transition:0.3s;
 }
 
-.back-link:hover{background: rgba(56,189,248,0.4);}
+.back-link:hover{
+    background: rgba(24,119,242,0.2);
+}
+
+/* DARK MODE */
+body.dark{
+    --bg1:#18191a;
+    --bg2:#242526;
+    --card:#3a3b3c;
+    --border:#3e4042;
+    --text:#e4e6eb;
+    --muted:#b0b3b8;
+    --accent:#2d88ff;
+}
+
+body.dark form{
+    background: var(--card);
+}
+
+body.dark input, body.dark textarea{
+    background: var(--card);
+    color: var(--text);
+    border:1px solid var(--border);
+}
+
+body.dark .back-link{
+    background: rgba(45,136,255,0.1);
+    color: var(--accent);
+}
 </style>
 </head>
 <body>
@@ -87,6 +142,10 @@ button:hover{opacity:.9;}
 </form>
 
 <a class="back-link" href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+
+<script>
+// Optional: Add dark mode toggle if you want
+</script>
 
 </body>
 </html>

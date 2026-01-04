@@ -5,37 +5,35 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import pytz  # pip install pytz
+import pytz
 
 # --- APP SETUP ---
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
 
-# --- LOGGING (for Render production) ---
+# --- LOGGING ---
 if not app.debug:
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.ERROR)
-    formatter = logging.Formatter("[%(asctime)s] %(levelname)s in %(module)s: %(message)s")
-    stream_handler.setFormatter(formatter)
-    app.logger.addHandler(stream_handler)
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
 
-# --- DATABASE (Render + local safe) ---
+# --- DATABASE ---
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, "instance")
 os.makedirs(instance_path, exist_ok=True)
+
 db_path = os.path.join(instance_path, "myblog.db")
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
 db = SQLAlchemy(app)
 
 # --- TIMEZONE ---
 local_tz = pytz.timezone("Asia/Manila")
 
-# --- MODELS ---
+# ---------- MODELS ----------
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), nullable=False, unique=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     profile_pic = db.Column(db.String(200), default="https://i.pravatar.cc/150?img=3")
     posts = db.relationship("Post", backref="user", lazy=True)
@@ -64,7 +62,7 @@ class Reaction(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
-# --- ROUTES ---
+# ---------- ROUTES ----------
 @app.route("/")
 def home():
     return redirect(url_for("dashboard") if "user_id" in session else url_for("login"))
@@ -79,7 +77,7 @@ def login():
             session["username"] = user.username
             session["profile_pic"] = user.profile_pic
             return redirect(url_for("dashboard"))
-        error = "Invalid username or password"
+        error = "Invalid credentials"
     return render_template("login.html", error=error)
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -87,7 +85,7 @@ def signup():
     error = None
     if request.method == "POST":
         if User.query.filter_by(username=request.form["username"]).first():
-            error = "Username already exists!"
+            error = "Username exists"
         else:
             user = User(
                 username=request.form["username"],
@@ -110,29 +108,34 @@ def logout():
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    page = request.args.get("page", 1, type=int)
-    per_page = 5
-    posts = Post.query.order_by(Post.timestamp.desc()).limit(per_page).offset((page-1)*per_page).all()
-    return render_template("dashboard.html", posts=posts, page=page)
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    return render_template("dashboard.html", posts=posts, profile_pic=session.get("profile_pic"))
 
+# --- ADD POST ---
 @app.route("/add", methods=["GET", "POST"])
 def add_post():
     if "user_id" not in session:
         return redirect(url_for("login"))
     if request.method == "POST":
-        post = Post(title=request.form["title"], content=request.form["content"], user_id=session["user_id"])
+        post = Post(
+            title=request.form["title"],
+            content=request.form["content"],
+            user_id=session["user_id"]
+        )
         db.session.add(post)
         db.session.commit()
-        flash("Post added successfully!")
+        flash("Post added!")
         return redirect(url_for("dashboard"))
     return render_template("add_post.html")
 
+# --- EDIT POST ---
 @app.route("/edit/<int:post_id>", methods=["GET", "POST"])
 def edit_post(post_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
     post = Post.query.get_or_404(post_id)
     if post.user_id != session["user_id"]:
+        flash("Not allowed")
         return redirect(url_for("dashboard"))
     if request.method == "POST":
         post.title = request.form["title"]
@@ -142,49 +145,74 @@ def edit_post(post_id):
         return redirect(url_for("dashboard"))
     return render_template("edit_post.html", post=post)
 
+# --- DELETE POST ---
 @app.route("/delete/<int:post_id>", methods=["POST"])
 def delete_post(post_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
     post = Post.query.get_or_404(post_id)
     if post.user_id != session["user_id"]:
+        flash("Not allowed")
         return redirect(url_for("dashboard"))
     db.session.delete(post)
     db.session.commit()
     flash("Post deleted!")
     return redirect(url_for("dashboard"))
 
+# --- ADD COMMENT ---
 @app.route("/comment/<int:post_id>", methods=["POST"])
 def add_comment(post_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
-    comment = Comment(content=request.form["comment"], post_id=post_id, user_id=session["user_id"])
+    comment = Comment(
+        content=request.form["comment"],
+        post_id=post_id,
+        user_id=session["user_id"]
+    )
     db.session.add(comment)
     db.session.commit()
     flash("Comment added!")
     return redirect(url_for("dashboard"))
 
-@app.route("/react/<int:post_id>/<emoji>")
-def react(post_id, emoji):
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    db.session.add(Reaction(emoji=emoji, post_id=post_id, user_id=session["user_id"]))
-    db.session.commit()
+# --- REACTIONS ---
+@app.route("/react/<int:post_id>", methods=["POST"])
+def react(post_id):
+    emoji = request.form.get("emoji")
+    if emoji and "user_id" in session:
+        db.session.add(Reaction(
+            emoji=emoji,
+            post_id=post_id,
+            user_id=session["user_id"]
+        ))
+        db.session.commit()
     return redirect(url_for("dashboard"))
 
-# --- RUN APP (Production-ready) ---
+# --- PROFILE PIC UPDATE ---
+@app.route("/update_profile_pic", methods=["POST"])
+def update_profile_pic():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    file = request.files.get("profile_pic")
+    if file and file.filename:
+        filename = secrets.token_hex(8) + "_" + file.filename
+        path = os.path.join("static/uploads", filename)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        file.save(path)
+        user = User.query.get(session["user_id"])
+        user.profile_pic = url_for("static", filename=f"uploads/{filename}")
+        db.session.commit()
+        session["profile_pic"] = user.profile_pic
+    return redirect(url_for("dashboard"))
+
+# ---------- RUN ----------
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-        # Auto-create admin if no users exist
         if not User.query.filter_by(username="admin").first():
-            admin_user = User(username="admin", password=generate_password_hash("admin123"))
-            db.session.add(admin_user)
+            db.session.add(User(
+                username="admin",
+                password=generate_password_hash("admin123")
+            ))
             db.session.commit()
-            app.logger.info("Admin created: username=admin, password=admin123")
 
-    port = int(os.environ.get("PORT", 10000))
-    # Only run dev server locally
-    if os.environ.get("FLASK_ENV") == "development":
-        app.run(host="0.0.0.0", port=port, debug=True)
-    # In production (Render), Gunicorn will run the app, no print needed
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)

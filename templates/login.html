@@ -6,81 +6,159 @@
 <title>Login - MyBlog</title>
 <style>
 :root{
-    --bg1:#0f4c81;
-    --bg2:#0a2e5c;
-    --card:rgba(15,43,78,0.95);
-    --border:#12406d;
-    --text:#e0f2ff;
-    --muted:#a3c5e8;
-    --accent:#38bdf8;
-    --danger:#f87171;
+    --bg:#f0f2f5;
+    --card:#fff;
+    --border:#ccc;
+    --text:#111;
+    --muted:#555;
+    --accent:#1877f2;
+    --danger:#f02849;
 }
 
-*{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;scroll-behavior:smooth;}
-body{margin:0;min-height:100vh;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text);display:flex;justify-content:center;align-items:center;flex-direction:column;}
+/* RESET */
+*{
+    box-sizing:border-box;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    scroll-behavior: smooth;
+}
+
+/* BODY */
+body{
+    margin:0;
+    min-height:100vh;
+    background: var(--bg);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    transition: background 0.3s, color 0.3s;
+}
 
 /* FORM CARD */
 form{
     background: var(--card);
-    padding:24px;
-    border-radius:18px;
+    padding:32px 24px;
+    border-radius:16px;
     width:100%;
-    max-width:360px;
-    box-shadow:0 20px 40px rgba(0,0,0,.6);
+    max-width:380px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.15);
+    transition: background 0.3s;
 }
 
-h2{text-align:center;margin-bottom:16px;}
+h2{
+    text-align:center;
+    margin-bottom:24px;
+    color: var(--text);
+}
 
+/* INPUTS */
 input{
     width:100%;
-    padding:12px;
-    margin-top:8px;
-    margin-bottom:14px;
+    padding:12px 14px;
+    margin-bottom:16px;
     border-radius:12px;
     border:1px solid var(--border);
-    background:#0a2e5c;
-    color:#fff;
+    background:#f5f5f5;
+    color:#111;
     font-size:15px;
     outline:none;
+    transition: background 0.3s, color 0.3s;
 }
 
+input:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 4px var(--accent);
+}
+
+/* BUTTON */
 button{
     width:100%;
     padding:12px;
     border:none;
     border-radius:12px;
-    background:linear-gradient(135deg,#38bdf8,#0a74b1);
+    background: var(--accent);
     color:#fff;
     font-size:16px;
     font-weight:bold;
     cursor:pointer;
-    transition:0.3s;
+    transition: 0.3s;
 }
 
-button:hover{opacity:.9;}
+button:hover{
+    opacity:0.9;
+}
 
 /* ERROR */
 .error{
-    color:var(--danger);
+    color: var(--danger);
     font-size:0.9em;
-    margin-bottom:10px;
+    margin-bottom:12px;
+    text-align:center;
 }
 
 /* SIGNUP LINK */
 a{
     display:block;
     text-align:center;
-    margin-top:10px;
-    font-size:0.85em;
-    color:var(--accent);
+    margin-top:12px;
+    font-size:0.9em;
+    color: var(--accent);
     text-decoration:none;
     transition:0.3s;
 }
 
-a:hover{opacity:.8;}
+a:hover{
+    opacity:.8;
+}
+
+/* DARK MODE */
+body.dark{
+    background:#18191a;
+    color:#e4e6eb;
+}
+
+body.dark form{
+    background:#242526;
+}
+
+body.dark input{
+    background:#3a3b3c;
+    color:#e4e6eb;
+    border:1px solid #555;
+}
+
+body.dark a{
+    color:#2d88ff;
+}
+
+body.dark .error{
+    color:#f02849;
+}
+
+/* DARK MODE TOGGLE BUTTON */
+#darkBtn{
+    position:fixed;
+    top:20px;
+    right:20px;
+    padding:8px 14px;
+    border-radius:999px;
+    border:1px solid #ccc;
+    background:#fff;
+    color:#111;
+    font-size:13px;
+    cursor:pointer;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+    transition:0.3s;
+}
+
+#darkBtn:hover{
+    box-shadow:0 0 18px rgba(0,0,0,0.2);
+}
 </style>
 </head>
 <body>
+
+<button id="darkBtn">Dark</button>
 
 <form method="POST">
     <h2>Login</h2>
@@ -91,5 +169,11 @@ a:hover{opacity:.8;}
     <a href="{{ url_for('signup') }}">Don't have an account? Sign Up</a>
 </form>
 
+<script>
+// DARK MODE TOGGLE
+document.getElementById("darkBtn").onclick = () => {
+    document.body.classList.toggle("dark");
+}
+</script>
 </body>
 </html>
