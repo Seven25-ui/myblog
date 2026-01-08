@@ -1,7 +1,7 @@
 import os
 import secrets
 import logging
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -67,6 +67,7 @@ class Reaction(db.Model):
 def home():
     return redirect(url_for("dashboard") if "user_id" in session else url_for("login"))
 
+# --- AUTH ---
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
@@ -104,6 +105,7 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+# --- DASHBOARD / FEED ---
 @app.route("/dashboard")
 def dashboard():
     if "user_id" not in session:
@@ -160,7 +162,7 @@ def delete_post(post_id):
     return redirect(url_for("dashboard"))
 
 # --- ADD COMMENT ---
-@app.route("/comment/<int:post_id>", methods=["POST"])
+@app.route("/add_comment/<int:post_id>", methods=["POST"])
 def add_comment(post_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -179,12 +181,14 @@ def add_comment(post_id):
 def react(post_id):
     emoji = request.form.get("emoji")
     if emoji and "user_id" in session:
-        db.session.add(Reaction(
-            emoji=emoji,
-            post_id=post_id,
-            user_id=session["user_id"]
-        ))
-        db.session.commit()
+        existing = Reaction.query.filter_by(post_id=post_id, user_id=session["user_id"], emoji=emoji).first()
+        if not existing:
+            db.session.add(Reaction(
+                emoji=emoji,
+                post_id=post_id,
+                user_id=session["user_id"]
+            ))
+            db.session.commit()
     return redirect(url_for("dashboard"))
 
 # --- PROFILE PIC UPDATE ---
@@ -204,6 +208,70 @@ def update_profile_pic():
         session["profile_pic"] = user.profile_pic
     return redirect(url_for("dashboard"))
 
+# --- PROFILE PAGE (ONLY ONE ROUTE NOW) ---
+@app.route("/profile")
+def my_profile():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    user = User.query.get(session["user_id"])
+    posts = Post.query.filter_by(user_id=user.id).order_by(Post.timestamp.desc()).all()
+    return render_template("profile.html", user=user, posts=posts)
+
+# --- OTHER PAGES (Under Construction) ---
+@app.route("/settings")
+def settings_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    return "<h2>Settings Page (Under Construction)</h2>"
+
+@app.route("/search")
+def search_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    return "<h2>Search Page (Under Construction)</h2>"
+
+@app.route("/messages")
+def messages_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    return "<h2>Messages Page (Under Construction)</h2>"
+
+@app.route("/notifications")
+def notifications_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    return "<h2>Notifications Page (Under Construction)</h2>"
+
+# --- JSON FEED FOR TABS ---
+@app.route("/feed/<tab>")
+def feed_tab(tab):
+    if "user_id" not in session:
+        return jsonify([])
+
+    if tab == "discover":
+        posts = Post.query.order_by(Post.timestamp.desc()).all()
+    elif tab == "following":
+        following_ids = [2,3]  # example
+        posts = Post.query.filter(Post.user_id.in_(following_ids)).order_by(Post.timestamp.desc()).all()
+    elif tab == "videos":
+        posts = Post.query.filter(Post.content.ilike("%video%")).order_by(Post.timestamp.desc()).all()
+    else:
+        posts = []
+
+    data = []
+    for post in posts:
+        data.append({
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "username": post.user.username,
+            "profile_pic": post.user.profile_pic,
+            "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M"),
+            "reactions": [{"emoji": r.emoji} for r in post.reactions],
+            "comments": [{"username": c.user.username, "content": c.content} for c in post.comments]
+        })
+    return jsonify(data)
+
 # ---------- RUN ----------
 if __name__ == "__main__":
     with app.app_context():
@@ -214,5 +282,4 @@ if __name__ == "__main__":
                 password=generate_password_hash("admin123")
             ))
             db.session.commit()
-
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)

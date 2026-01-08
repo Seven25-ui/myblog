@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ user.username }} - Profile</title>
+<style>
+body{font-family:Arial,sans-serif; background:#f0f9ff; color:#0f172a; padding:20px;}
+.profile-header{display:flex; align-items:center; gap:15px; margin-bottom:20px;}
+.profile-header img{width:80px; height:80px; border-radius:50%; border:3px solid #38bdf8; object-fit:cover;}
+.card{background:#fff; padding:15px; margin-bottom:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.05);}
+.card h3{margin-bottom:6px; color:#0284c7;}
+.card small{color:#64748b;}
+</style>
+</head>
+<body>
+
+<div class="profile-header">
+    <img src="{{ user.profile_pic }}" alt="Profile Pic">
+    <h2>{{ user.username }}</h2>
+</div>
+
+<h3>Posts</h3>
+
+{% for post in posts %}
+<div class="card">
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content }}</p>
+    <small>{{ post.timestamp.strftime("%Y-%m-%d %H:%M") }}</small>
+</div>
+{% else %}
+<p>No posts yet.</p>
+{% endfor %}
+
+</body>
+</html>

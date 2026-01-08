@@ -2,79 +2,308 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard</title>
+<title>Seven33 Feed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{font-family:Arial;background:#f4f4f4;padding:20px}
-.nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.nav img{width:50px;height:50px;border-radius:50%}
-.card{background:#fff;padding:15px;margin-bottom:15px;border-radius:8px;position:relative}
-button,a.button{padding:5px 10px;background:#333;color:#fff;text-decoration:none;border:none;border-radius:5px;cursor:pointer;margin-right:5px}
-form input, form textarea{width:100%;padding:8px;margin:5px 0}
-form button{width:auto}
-.flash{color:green;margin-bottom:10px}
+:root{
+  --sky:#38bdf8;
+  --sky-dark:#0284c7;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+  --bg:#f0f9ff;
+}
+
+/* RESET */
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif;}
+body{background:var(--bg); color:var(--text); padding-bottom:70px;}
+
+/* TOP NAV */
+.top-nav{
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;
+  padding:12px 15px; background:var(--card); box-shadow:0 3px 8px rgba(0,0,0,.08);
+  position:sticky; top:0; z-index:100;
+}
+.top-nav .hamburger{font-size:22px; cursor:pointer; position:relative;}
+.top-nav .logo{font-weight:bold; font-size:20px; color:var(--sky-dark);}
+.top-nav .actions{display:flex; flex-wrap:wrap; gap:6px;}
+.top-nav .actions a{ text-decoration:none; color:white; padding:6px 12px; border-radius:20px; font-size:14px;}
+.top-nav .actions .add-post{background:var(--sky);}
+.top-nav .actions .add-post:hover{background:var(--sky-dark);}
+.top-nav .actions .logout{background:#ef4444;}
+.top-nav .actions .logout:hover{background:#dc2626;}
+
+/* HAMBURGER DROPDOWN */
+.dropdown{
+  display:none;
+  position:absolute;
+  top:40px;
+  left:0;
+  background:var(--card);
+  border:1px solid #cbd5f5;
+  border-radius:10px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+  flex-direction:column;
+}
+.dropdown a{
+  padding:8px 12px;
+  text-decoration:none;
+  color:var(--text);
+  font-size:14px;
+}
+.dropdown a:hover{background:#e0f2fe; color:var(--sky-dark);}
+
+/* TABS */
+.tabs{
+  display:flex; justify-content:flex-start;
+  background:var(--card); padding:10px 0;
+  box-shadow:0 2px 5px rgba(0,0,0,.05);
+  position:sticky; top:56px; z-index:90;
+  overflow-x:auto; scroll-behavior:smooth;
+}
+.tabs::-webkit-scrollbar{display:none;}
+.tabs a{flex:0 0 auto; text-decoration:none; color:var(--muted); font-weight:bold; font-size:14px; padding:0 12px;}
+.tabs a.active{color:var(--sky-dark); border-bottom:2px solid var(--sky); padding-bottom:2px;}
+
+/* POSTS */
+.card{
+  background:var(--card);
+  padding:18px;
+  margin:18px auto 0 auto;
+  border-radius:16px;
+  box-shadow:0 6px 20px rgba(0,0,0,.05);
+  max-width:600px; /* desktop max width */
+  width:90%;       /* mobile responsive */
+}
+.card h3{margin-bottom:6px;color:var(--sky-dark);}
+.card small{color:var(--muted);}
+.profile{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+.profile img{width:45px;height:45px;border-radius:50%;border:2px solid var(--sky);object-fit:cover;}
+.comment{font-size:14px;margin:4px 0;}
+.reactions button{background:#e0f2fe;color:#0369a1;border-radius:50%;padding:6px 10px;border:none;cursor:pointer;font-weight:bold;transition:.2s;}
+.reactions button:hover{background:#bae6fd;}
+button{padding:6px 12px;background:var(--sky);color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:14px;margin-top:5px;}
+form input{width:100%; padding:8px 10px; margin-top:6px; border-radius:10px; border:1px solid #cbd5f5;}
+form input:focus{outline:none; border-color:var(--sky);}
+
+/* BOTTOM NAV */
+.bottom-nav{
+  position:fixed; bottom:0; left:0; width:100%; height:60px; background:var(--card);
+  border-top:1px solid #cbd5f5; display:flex; justify-content:space-around; align-items:center; box-shadow:0 -3px 10px rgba(0,0,0,.05); z-index:1000;
+}
+.bottom-nav a{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 12px;
+  gap: 4px;
+}
+.bottom-nav a:hover{color: var(--sky-dark);}
+.bottom-nav .icon{width: 24px; height: 24px;}
+
+/* Back to Home button */
+#backHomeBtn{
+  position:fixed; bottom:70px; right:15px; padding:10px 16px; background:var(--sky); color:#fff; border:none; border-radius:20px; cursor:pointer; font-weight:bold; display:none; z-index:1001;
+}
+
+/* MOBILE SPECIFIC */
+@media (max-width:500px){
+  .top-nav .logo{font-size:18px;}
+  .top-nav .actions a{font-size:12px; padding:5px 10px;}
+  .card h3{font-size:16px;}
+  .card p, .card small, .comment{font-size:12px;}
+  .tabs a{font-size:12px; padding:0 10px;}
+}
 </style>
+<script>
+function toggleDropdown(){
+  const drop = document.getElementById('hamburgerDropdown');
+  drop.style.display = drop.style.display === 'flex' ? 'none' : 'flex';
+}
+
+let page = {discover:1, following:1, videos:1}; // lazy load pages
+
+function showBackButton(show){
+  const btn = document.getElementById('backHomeBtn');
+  btn.style.display = show ? 'block' : 'none';
+}
+
+function loadTab(tab, reset=false){
+  document.querySelectorAll('.tabs a').forEach(el=>el.classList.remove('active'));
+  if(tab in page) document.querySelector(`.tabs a[href="#${tab}"]`)?.classList.add('active');
+  if(reset && (tab in page)) page[tab]=1;
+
+  const feed = document.getElementById('feed');
+  if(tab === 'discover' || tab === 'following' || tab === 'videos'){
+    fetch(`/feed/${tab}?page=${page[tab]}`)
+      .then(res=>res.json())
+      .then(posts=>{
+        if(reset) feed.innerHTML = "";
+        posts.forEach(post=>{
+          const div = document.createElement('div');
+          div.className='card';
+          div.innerHTML = `
+            <div class="profile">
+              <img src="${post.profile_pic}" alt="Profile Pic">
+              <strong>${post.username}</strong>
+            </div>
+            <h3>${post.title}</h3>
+            <p>${post.content}</p>
+            <small>${post.timestamp}</small>
+            <div class="reactions" style="margin-top:8px; display:flex; gap:10px;">
+              <button onclick="react(${post.id},'👍')"> 👍 ${post.reactions.filter(r=>r.emoji==='👍').length}</button>
+              <button onclick="react(${post.id},'❤️')">❤️ ${post.reactions.filter(r=>r.emoji==='❤️').length}</button>
+              <button onclick="react(${post.id},'😂')"> 😂 ${post.reactions.filter(r=>r.emoji==='😂').length}</button>
+            </div>
+            <div style="margin-top:12px;">
+              <form action="/add_comment/${post.id}" method="post" class="comment-form">
+                <input type="text" name="comment" placeholder="Write a comment..." required>
+                <button type="submit">Comment</button>
+              </form>
+              ${post.comments.map(c=>`<div class="comment">💬 <b>${c.username}</b>: ${c.content}</div>`).join('')}
+            </div>
+          `;
+          feed.appendChild(div);
+        });
+        if(posts.length>0) page[tab]++;
+        showBackButton(false); // hide home button on feed
+      });
+  } else {
+    // non-feed page
+    feed.innerHTML = `<h3 style="text-align:center; margin-top:40px;">${tab.charAt(0).toUpperCase() + tab.slice(1)} Page</h3>`;
+    showBackButton(true);
+  }
+}
+
+function react(post_id, emoji){
+  fetch(`/react/${post_id}`, {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:`emoji=${emoji}`
+  }).then(()=>loadTab('discover'));
+}
+
+// Lazy load
+window.addEventListener('scroll', ()=>{
+  if((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100){
+    const activeTab = document.querySelector('.tabs a.active')?.getAttribute('href')?.substring(1);
+    if(activeTab) loadTab(activeTab);
+  }
+});
+
+document.addEventListener('DOMContentLoaded', ()=>{ loadTab('discover', true); });
+</script>
 </head>
 <body>
 
-<div class="nav">
-  <div>
-    <img src="{{ profile_pic }}" alt="Profile Pic">
-    <span>{{ session.username }}</span>
-  </div>
-  <div>
-    <a href="{{ url_for('add_post') }}" class="button">Add Post</a>
-    <a href="{{ url_for('logout') }}" class="button">Logout</a>
+<!-- TOP NAV -->
+<div class="top-nav">
+  <span class="hamburger" onclick="toggleDropdown()">☰</span>
+  <span class="logo">Seven33</span>
+  <span class="actions">
+    <a href="{{ url_for('add_post') }}" class="add-post">Add Post</a>
+    <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+  </span>
+  <div id="hamburgerDropdown" class="dropdown">
+    <a href="{{ url_for('dashboard') }}">Home</a>
+    <a href="{{ url_for('my_profile') }}">Profile</a>
+    <a href="{{ url_for('settings_page') }}">Settings</a>
+    <a href="{{ url_for('logout') }}">Logout</a>
   </div>
 </div>
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div class="flash">
-      {% for msg in messages %}{{ msg }}<br>{% endfor %}
+<!-- TABS -->
+<div class="tabs">
+  <a href="#discover" onclick="loadTab('discover',true)" class="active">Discover</a>
+  <a href="#following" onclick="loadTab('following',true)">Following</a>
+  <a href="#videos" onclick="loadTab('videos',true)">Videos</a>
+</div>
+
+<!-- FEED -->
+<div id="feed">
+  {% for post in posts %}
+  <div class="card">
+    <div class="profile">
+      <img src="{{ post.user.profile_pic }}" alt="Profile Pic">
+      <strong>{{ post.user.username }}</strong>
     </div>
-  {% endif %}
-{% endwith %}
-
-{% for post in posts %}
-<div class="card">
-  <h3>{{ post.title }}</h3>
-  <p>{{ post.content }}</p>
-  <small>by {{ post.user.username }} on {{ post.timestamp.strftime("%Y-%m-%d %H:%M") }}</small>
-  <div style="margin-top:10px;">
-    <a href="{{ url_for('edit_post', post_id=post.id) }}" class="button">Edit</a>
-    <form action="{{ url_for('delete_post', post_id=post.id) }}" method="post" style="display:inline;">
-      <button type="submit">Delete</button>
-    </form>
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content }}</p>
+    <small>{{ post.timestamp.strftime("%Y-%m-%d %H:%M") }}</small>
+    <div class="reactions" style="margin-top:8px; display:flex; gap:10px;">
+      {% set reactions = post.reactions %}
+      {% set thumbs = reactions | selectattr("emoji","equalto","👍") | list | length %}
+      {% set hearts = reactions | selectattr("emoji","equalto","❤️") | list | length %}
+      {% set laughs = reactions | selectattr("emoji","equalto","😂") | list | length %}
+      <button onclick="react({{post.id}},'👍')">👍 {{ thumbs }}</button>
+      <button onclick="react({{post.id}},'❤️')">❤️ {{ hearts }}</button>
+      <button onclick="react({{post.id}},'😂')">😂 {{ laughs }}</button>
+    </div>
+    <div style="margin-top:12px;">
+      <form action="{{ url_for('add_comment', post_id=post.id) }}" method="post">
+        <input type="text" name="comment" placeholder="Write a comment..." required>
+        <button type="submit">Comment</button>
+      </form>
+      {% for c in post.comments %}
+        <div class="comment">💬 <b>{{ c.user.username }}</b>: {{ c.content }}</div>
+      {% endfor %}
+    </div>
   </div>
-
-  <!-- COMMENTS -->
-  <div style="margin-top:10px;">
-    <form action="{{ url_for('add_comment', post_id=post.id) }}" method="post">
-      <input type="text" name="comment" placeholder="Add a comment..." required>
-      <button type="submit">Comment</button>
-    </form>
-    {% for c in post.comments %}
-      <p>💬 {{ c.user.username }}: {{ c.content }}</p>
-    {% endfor %}
-  </div>
-
-  <!-- REACTIONS -->
-  <div style="margin-top:5px;">
-    <form action="{{ url_for('react', post_id=post.id) }}" method="post" style="display:inline;">
-      <input type="hidden" name="emoji" value="👍">
-      <button type="submit">👍</button>
-    </form>
-    <form action="{{ url_for('react', post_id=post.id) }}" method="post" style="display:inline;">
-      <input type="hidden" name="emoji" value="❤️">
-      <button type="submit">❤️</button>
-    </form>
-    <form action="{{ url_for('react', post_id=post.id) }}" method="post" style="display:inline;">
-      <input type="hidden" name="emoji" value="😂">
-      <button type="submit">😂</button>
-    </form>
-  </div>
+  {% endfor %}
 </div>
-{% endfor %}
+
+<!-- Back to Home Button -->
+<button id="backHomeBtn" onclick="loadTab('discover', true)">Back to Home</button>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <a href="#" data-tab="discover">
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 9.5l9-7 9 7v11a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2v-11z"/>
+    </svg>
+    <span>Home</span>
+  </a>
+  <a href="#" data-tab="search">
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 3 10.5a7.5 7.5 0 0 0 13.65 6.15z"/>
+    </svg>
+    <span>Search</span>
+  </a>
+  <a href="#" data-tab="messages">
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
+    </svg>
+    <span>Messages</span>
+  </a>
+  <a href="#" data-tab="notifications">
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2zm6-6V10a6 6 0 0 0-12 0v6l-2 2v1h16v-1l-2-2z"/>
+    </svg>
+    <span>Notifications</span>
+  </a>
+  <a href="#" data-tab="profile">
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+    </svg>
+    <span>Profile</span>
+  </a>
+</div>
+
+<script>
+// Bottom nav click
+document.querySelectorAll('.bottom-nav a').forEach(link=>{
+  link.addEventListener('click', e=>{
+    e.preventDefault();
+    const tab = link.dataset.tab;
+    document.querySelectorAll('.bottom-nav a').forEach(a=>a.classList.remove('active'));
+    link.classList.add('active');
+    loadTab(tab, true);
+  });
+});
+</script>
 
 </body>
 </html>
