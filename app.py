@@ -21,7 +21,6 @@ if not app.debug:
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, "instance")
 os.makedirs(instance_path, exist_ok=True)
-
 db_path = os.path.join(instance_path, "myblog.db")
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -63,15 +62,16 @@ class Reaction(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
 # ---------- ROUTES ----------
+
 @app.route("/")
 def home():
     return redirect(url_for("dashboard") if "user_id" in session else url_for("login"))
 
 # --- AUTH ---
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login", methods=["GET","POST"])
 def login():
     error = None
-    if request.method == "POST":
+    if request.method=="POST":
         user = User.query.filter_by(username=request.form["username"]).first()
         if user and check_password_hash(user.password, request.form["password"]):
             session["user_id"] = user.id
@@ -81,10 +81,10 @@ def login():
         error = "Invalid credentials"
     return render_template("login.html", error=error)
 
-@app.route("/signup", methods=["GET", "POST"])
+@app.route("/signup", methods=["GET","POST"])
 def signup():
     error = None
-    if request.method == "POST":
+    if request.method=="POST":
         if User.query.filter_by(username=request.form["username"]).first():
             error = "Username exists"
         else:
@@ -114,16 +114,12 @@ def dashboard():
     return render_template("dashboard.html", posts=posts, profile_pic=session.get("profile_pic"))
 
 # --- ADD POST ---
-@app.route("/add", methods=["GET", "POST"])
+@app.route("/add", methods=["GET","POST"])
 def add_post():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    if request.method == "POST":
-        post = Post(
-            title=request.form["title"],
-            content=request.form["content"],
-            user_id=session["user_id"]
-        )
+    if request.method=="POST":
+        post = Post(title=request.form["title"], content=request.form["content"], user_id=session["user_id"])
         db.session.add(post)
         db.session.commit()
         flash("Post added!")
@@ -131,7 +127,7 @@ def add_post():
     return render_template("add_post.html")
 
 # --- EDIT POST ---
-@app.route("/edit/<int:post_id>", methods=["GET", "POST"])
+@app.route("/edit/<int:post_id>", methods=["GET","POST"])
 def edit_post(post_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -139,7 +135,7 @@ def edit_post(post_id):
     if post.user_id != session["user_id"]:
         flash("Not allowed")
         return redirect(url_for("dashboard"))
-    if request.method == "POST":
+    if request.method=="POST":
         post.title = request.form["title"]
         post.content = request.form["content"]
         db.session.commit()
@@ -166,49 +162,24 @@ def delete_post(post_id):
 def add_comment(post_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
-    comment = Comment(
-        content=request.form["comment"],
-        post_id=post_id,
-        user_id=session["user_id"]
-    )
+    comment = Comment(content=request.form["comment"], post_id=post_id, user_id=session["user_id"])
     db.session.add(comment)
     db.session.commit()
     flash("Comment added!")
     return redirect(url_for("dashboard"))
 
-# --- REACTIONS ---
+# --- REACT AJAX ---
 @app.route("/react/<int:post_id>", methods=["POST"])
 def react(post_id):
     emoji = request.form.get("emoji")
     if emoji and "user_id" in session:
         existing = Reaction.query.filter_by(post_id=post_id, user_id=session["user_id"], emoji=emoji).first()
         if not existing:
-            db.session.add(Reaction(
-                emoji=emoji,
-                post_id=post_id,
-                user_id=session["user_id"]
-            ))
+            db.session.add(Reaction(emoji=emoji, post_id=post_id, user_id=session["user_id"]))
             db.session.commit()
-    return redirect(url_for("dashboard"))
+    return jsonify({"status":"ok"})
 
-# --- PROFILE PIC UPDATE ---
-@app.route("/update_profile_pic", methods=["POST"])
-def update_profile_pic():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    file = request.files.get("profile_pic")
-    if file and file.filename:
-        filename = secrets.token_hex(8) + "_" + file.filename
-        path = os.path.join("static/uploads", filename)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        file.save(path)
-        user = User.query.get(session["user_id"])
-        user.profile_pic = url_for("static", filename=f"uploads/{filename}")
-        db.session.commit()
-        session["profile_pic"] = user.profile_pic
-    return redirect(url_for("dashboard"))
-
-# --- PROFILE PAGE (ONLY ONE ROUTE NOW) ---
+# --- PROFILE PAGE ---
 @app.route("/profile")
 def my_profile():
     if "user_id" not in session:
@@ -217,7 +188,95 @@ def my_profile():
     posts = Post.query.filter_by(user_id=user.id).order_by(Post.timestamp.desc()).all()
     return render_template("profile.html", user=user, posts=posts)
 
-# --- OTHER PAGES (Under Construction) ---
+# --- EDIT PROFILE ---
+@app.route("/edit_profile", methods=["GET","POST"])
+def edit_profile():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    user = User.query.get(session["user_id"])
+    if request.method=="POST":
+        username = request.form.get("username")
+        profile_pic = request.form.get("profile_pic")
+        if username:
+            user.username = username
+        if profile_pic:
+            user.profile_pic = profile_pic
+        db.session.commit()
+        session["username"] = user.username
+        session["profile_pic"] = user.profile_pic
+        return redirect(url_for("my_profile"))
+    return render_template("edit_profile.html", user=user)
+
+# --- UPDATE PROFILE AJAX ---
+@app.route("/update_profile", methods=["POST"])
+def update_profile_ajax():
+    if "user_id" not in session:
+        return jsonify({"status":"error", "message":"Not logged in"})
+    user = User.query.get(session["user_id"])
+    username = request.form.get("username")
+    file = request.files.get("profile_pic")
+    if username:
+        user.username = username
+    if file and file.filename:
+        filename = secrets.token_hex(8) + "_" + file.filename
+        path = os.path.join("static/uploads", filename)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        file.save(path)
+        user.profile_pic = url_for("static", filename=f"uploads/{filename}")
+        session["profile_pic"] = user.profile_pic
+    db.session.commit()
+    return jsonify({"status":"success", "username": user.username, "profile_pic": user.profile_pic})
+
+# --- JSON FEED FOR TABS ---
+@app.route("/feed/<tab>")
+def feed_tab(tab):
+    if "user_id" not in session:
+        return jsonify([])
+    if tab=="discover":
+        posts = Post.query.order_by(Post.timestamp.desc()).all()
+    elif tab=="following":
+        following_ids = [2,3]  # example
+        posts = Post.query.filter(Post.user_id.in_(following_ids)).order_by(Post.timestamp.desc()).all()
+    elif tab=="videos":
+        posts = Post.query.filter(Post.content.ilike("%video%")).order_by(Post.timestamp.desc()).all()
+    else:
+        posts = []
+    data = []
+    for post in posts:
+        data.append({
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "username": post.user.username,
+            "profile_pic": post.user.profile_pic,
+            "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M"),
+            "reactions": [{"emoji": r.emoji, "username": r.user.username} for r in post.reactions],
+            "comments": [{"username": c.user.username, "content": c.content} for c in post.comments]
+        })
+    return jsonify(data)
+
+# --- PROFILE FEED AJAX ---
+@app.route("/feed/profile")
+def feed_profile():
+    if "user_id" not in session:
+        return jsonify([])
+    user = User.query.get(session["user_id"])
+    posts = Post.query.filter_by(user_id=user.id).order_by(Post.timestamp.desc()).all()
+    data = []
+    for post in posts:
+        data.append({
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "username": user.username,
+            "profile_pic": user.profile_pic,
+            "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M"),
+            "reactions": [{"emoji": r.emoji} for r in post.reactions],
+            "comments": [{"username": c.user.username, "content": c.content} for c in post.comments]
+        })
+    return jsonify(data)
+
+# --- OTHER PAGES ---
 @app.route("/settings")
 def settings_page():
     if "user_id" not in session:
@@ -242,44 +301,11 @@ def notifications_page():
         return redirect(url_for("login"))
     return "<h2>Notifications Page (Under Construction)</h2>"
 
-# --- JSON FEED FOR TABS ---
-@app.route("/feed/<tab>")
-def feed_tab(tab):
-    if "user_id" not in session:
-        return jsonify([])
-
-    if tab == "discover":
-        posts = Post.query.order_by(Post.timestamp.desc()).all()
-    elif tab == "following":
-        following_ids = [2,3]  # example
-        posts = Post.query.filter(Post.user_id.in_(following_ids)).order_by(Post.timestamp.desc()).all()
-    elif tab == "videos":
-        posts = Post.query.filter(Post.content.ilike("%video%")).order_by(Post.timestamp.desc()).all()
-    else:
-        posts = []
-
-    data = []
-    for post in posts:
-        data.append({
-            "id": post.id,
-            "title": post.title,
-            "content": post.content,
-            "username": post.user.username,
-            "profile_pic": post.user.profile_pic,
-            "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M"),
-            "reactions": [{"emoji": r.emoji} for r in post.reactions],
-            "comments": [{"username": c.user.username, "content": c.content} for c in post.comments]
-        })
-    return jsonify(data)
-
 # ---------- RUN ----------
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         if not User.query.filter_by(username="admin").first():
-            db.session.add(User(
-                username="admin",
-                password=generate_password_hash("admin123")
-            ))
+            db.session.add(User(username="admin", password=generate_password_hash("admin123")))
             db.session.commit()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)

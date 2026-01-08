@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edit Profile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root{
+  --sky:#38bdf8;
+  --sky-dark:#0284c7;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+  --bg:#f0f9ff;
+}
+
+body{font-family:Arial,sans-serif; background:var(--bg); color:var(--text); padding:20px;}
+form{background:var(--card); padding:20px; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.05); max-width:500px; margin:auto;}
+label{display:block; margin-top:12px; font-weight:bold;}
+input[type="text"], input[type="file"]{width:100%; padding:10px; margin-top:6px; border-radius:10px; border:1px solid #cbd5f5;}
+button{margin-top:12px; padding:10px 16px; background:var(--sky); color:#fff; border:none; border-radius:12px; cursor:pointer; font-weight:bold;}
+h2{text-align:center; margin-bottom:20px;}
+</style>
+</head>
+<body>
+
+<h2>Edit Profile</h2>
+
+<form method="POST">
+    <label>Username</label>
+    <input type="text" name="username" value="{{ user.username }}" required>
+
+    <label>Profile Pic URL</label>
+    <input type="text" name="profile_pic" value="{{ user.profile_pic }}">
+
+    <button type="submit">Save Changes</button>
+</form>
+
+<form action="{{ url_for('update_profile_pic') }}" method="POST" enctype="multipart/form-data" style="margin-top:15px; max-width:500px; margin:auto;">
+    <label>Or Upload Profile Picture</label>
+    <input type="file" name="profile_pic">
+    <button type="submit">Upload</button>
+</form>
+
+</body>
+</html>
